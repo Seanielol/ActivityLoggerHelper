@@ -94,6 +94,31 @@ def timeToSeconds(timeStr):
     return (hours * 3600) + (mins * 60) + seconds
 
 
+async def checkDebug():
+    global debugMode
+    if debugMode == True:
+        for i in config["debug_users"]:
+            if i == interaction.user.id:
+                return True
+        if debuggingUserAllowed == False:
+            embed1 = discord.Embed(
+                title="Debugging Mode",
+                description="The bot is currently in a debugging mode for testing or maintenance. Sorry for the inconvenience!",
+                color=0xFF0000,
+            )
+            await interaction.response.send_message(
+                embed=embed1, ephemeral=True, delete_after=300
+            )
+            return False
+
+
+async def ensureFormattedTime(time):
+    totalSeconds = int(time.total_seconds())
+    hours, remainder = divmod(totalSeconds, 3600)
+    mins, seconds = divmod(remainder, 60)
+    return f"{hours:02}:{minutes:02}:{seconds:02}"
+
+
 async def fetchActivity(channel, steamID):
     global embed1
     global config
@@ -108,7 +133,7 @@ async def fetchActivity(channel, steamID):
             if match:
                 timeStr = match.group(1)
                 totalSeconds += timeToSeconds(timeStr)
-    totalActivity = str(timedelta(seconds=totalSeconds))
+    totalActivity = await ensureFormattedTime(timedelta(seconds=totalSeconds))
     channelName = list(config["channelid"].keys())[
         list(config["channelid"].values()).index(channel.id)
     ].upper()
@@ -147,20 +172,9 @@ async def activity(interaction: discord.Interaction, steamid: str):
         f"{datetime.now()} - {interaction.user.name} ({interaction.user.id}) has searched the activity for {steamid} in {interaction.guild.name} ({interaction.guild.id})"
     )
 
-    if debugMode == True:
-        for i in config["debug_users"]:
-            if i == interaction.user.id:
-                debuggingUserAllowed = True
-        if debuggingUserAllowed == False:
-            embed1 = discord.Embed(
-                title="Debugging Mode",
-                description="The bot is currently in a debugging mode for testing or maintenance. Sorry for the inconvenience!",
-                color=0xFF0000,
-            )
-            await interaction.response.send_message(
-                embed=embed1, ephemeral=True, delete_after=300
-            )
-            return
+    x = await checkDebug()
+    if not x:
+        return
 
     for i in config["guilds"]:
         if config["guilds"][i] == interaction.guild.id:
