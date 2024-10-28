@@ -118,7 +118,7 @@ async def ensureFormattedTime(time):
     totalSeconds = int(time.total_seconds())
     hours, remainder = divmod(totalSeconds, 3600)
     mins, seconds = divmod(remainder, 60)
-    return f"{hours:02}:{minutes:02}:{seconds:02}"
+    return f"{hours:02}:{mins:02}:{seconds:02}"
 
 
 async def fetchActivity(channel, steamID):
