@@ -110,6 +110,8 @@ async def checkDebug():
                 embed=embed1, ephemeral=True, delete_after=300
             )
             return False
+    else:
+        return True
 
 
 async def ensureFormattedTime(time):
@@ -124,7 +126,6 @@ async def fetchActivity(channel, steamID):
     global config
     totalSeconds = 0
     timeframe = datetime.now() - timedelta(days=7)
-    print(f"2, {timeframe}")
     async for message in channel.history(limit=None, after=timeframe):
         if message.embeds:
             content = message.embeds[0].description
@@ -174,7 +175,6 @@ async def activity(interaction: discord.Interaction, steamid: str):
     )
 
     x = await checkDebug()
-    print(f"1, {x}")
     if not x:
         return
 
