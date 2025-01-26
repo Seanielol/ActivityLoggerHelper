@@ -338,7 +338,7 @@ def loadConfig():
                         "nca": "National Crime Agency",
                         "nhs": "National Health Service",
                         "rs": "Royal Syndicate",
-                        "t": "Terrorists",
+                        "t": "Black Claw",
                     },
                     "channelid": {
                         "pd": 1090365529564385310,
