@@ -83,10 +83,10 @@ client = ActivityLogger(intents=intents)
 async def sendErrorMsg(interaction):
     embed1 = discord.Embed(
         title="Error occured during runtime",
-        description="A critical error occured whilst running the command. Please contact `teasippingbrit` on Discord.",
+        description="A critical error occured whilst running the command. Please contact `spacey75` on Discord.",
         color=0xFF0000,
     )
-    await interaction.response.send_message(embed=embed1, ephemeral=True)
+    await interaction.followup.send(embed=embed1, ephemeral=True)
 
 
 def timeToSeconds(timeStr):
@@ -106,8 +106,8 @@ async def checkDebug():
                 description="The bot is currently in a debugging mode for testing or maintenance. Sorry for the inconvenience!",
                 color=0xFF0000,
             )
-            await interaction.response.send_message(
-                embed=embed1, ephemeral=True, delete_after=300
+            await interaction.followup.send(
+                embed=embed1, ephemeral=True
             )
             return False
     else:
@@ -129,12 +129,13 @@ async def fetchActivity(channel, steamID):
     async for message in channel.history(limit=None, after=timeframe):
         if message.embeds:
             content = message.embeds[0].description
-            match = re.search(
-                rf"\({steamID}\).*for `(\d{{2}}:\d{{2}}:\d{{2}})`", content
-            )
-            if match:
-                timeStr = match.group(1)
-                totalSeconds += timeToSeconds(timeStr)
+            if content:
+                match = re.search(
+                    rf"\({steamID}\).*for `(\d{{2}}:\d{{2}}:\d{{2}})`", content
+                )
+                if match:
+                    timeStr = match.group(1)
+                    totalSeconds += timeToSeconds(timeStr)
     totalActivity = await ensureFormattedTime(timedelta(seconds=totalSeconds))
     channelName = list(config["channelid"].keys())[
         list(config["channelid"].values()).index(channel.id)
@@ -174,6 +175,11 @@ async def activity(interaction: discord.Interaction, steamid: str):
         f"{datetime.now()} - {interaction.user.name} ({interaction.user.id}) has searched the activity for {steamid} in {interaction.guild.name} ({interaction.guild.id})"
     )
 
+    try:
+        await interaction.response.defer(ephemeral=True, thinking=True)
+    except Exception as e:
+        print(e)
+
     x = await checkDebug()
     if not x:
         return
@@ -212,11 +218,11 @@ async def activity(interaction: discord.Interaction, steamid: str):
         errorlogger.error(f"{datetime.now()} - " + str(e))
         embed1 = discord.Embed(
             title="Incorrect channel",
-            description="You must run the `/activity` command in the corresponding activity logging channel (e.g `#activity-log`). If this in error, please contact `teasippingbrit` on Discord.",
+            description="You must run the `/activity` command in the corresponding activity logging channel (e.g `#activity-log`). If this in error, please contact `spacey75` on Discord.",
             color=0xFF0000,
         )
-        await interaction.response.send_message(
-            embed=embed1, ephemeral=True, delete_after=1200
+        await interaction.followup.send(
+            embed=embed1, ephemeral=True
         )
         return
     if ChannelObj:
@@ -229,11 +235,11 @@ async def activity(interaction: discord.Interaction, steamid: str):
                 else:
                     embed1 = discord.Embed(
                         title="Permission Denied",
-                        description="You do not have the required permsisions to use this bot. If this in error, please contact `teasippingbrit` on Discord.",
+                        description="You do not have the required permsisions to use this bot. If this in error, please contact `spacey75` on Discord.",
                         color=0xFF0000,
                     )
-                    await interaction.response.send_message(
-                        embed=embed1, ephemeral=True, delete_after=120
+                    await interaction.followup.send(
+                        embed=embed1, ephemeral=True
                     )
                     return
             else:
@@ -247,18 +253,36 @@ async def activity(interaction: discord.Interaction, steamid: str):
         errorlogger.error(f"Error during channel check, channel not found.")
         embed1 = discord.Embed(
             title="Channel not found",
-            description="The logging channel was not found. This is likely a configuration error, or the result of changes to the logging channels. Please contact `teasippingbrit` on Discord.",
+            description="The logging channel was not found. This is likely a configuration error, or the result of changes to the logging channels. Please contact `spacey75` on Discord.",
             color=0xFF0000,
         )
-        await interaction.response.send_message(embed=embed1, ephemeral=True)
+        await interaction.followup.send(embed=embed1, ephemeral=True)
 
     if channelToBeUsed == None:
         return
     if steamid.startswith("STEAM_"):
         await fetchActivity(channelToBeUsed, steamid)
-        await interaction.response.send_message(
-            embed=embed1, ephemeral=True, delete_after=1200
-        )
+        #stinky
+        #await interaction.response.send_message(
+            #embed=embed1, ephemeral=True, delete_after=1200
+        #)
+
+        #deferred
+        count = 0
+        while True:
+            try:
+                if count < 3:
+                    await interaction.followup.send(embed=embed1, ephemeral=True)
+                break
+            except Exception as e:
+                count += 1
+                print(f"Failed sending message. Attempt number {count}. {e}")
+                if count >= 3:
+                    print(f"CRITICAL: Failed to respond. | {embed1.description} | {e}")
+                    break
+                await asyncio.sleep(3)
+                pass
+        #await interaction.response.send_message(embed=embed1, ephemeral=true, delete_after=1200)
     else:
         infologger.info(
             f"{datetime.now()} - {interaction.user.name} ({interaction.user.id}) has used the incorrect format for {steamid} in {interaction.guild.name} ({interaction.guild.id})"
@@ -268,8 +292,8 @@ async def activity(interaction: discord.Interaction, steamid: str):
             description="The SteamID supplied either does not exist, or is of an invalid format. Please enter the ID in this format: `STEAM_0:0:431471716`",
             color=0x0483FB,
         )
-        await interaction.response.send_message(
-            embed=embed1, ephemeral=True, delete_after=1200
+        await interaction.followup.send(
+            embed=embed1, ephemeral=True
         )
 
 
