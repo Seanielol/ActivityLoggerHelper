@@ -74,7 +74,7 @@ class ActivityLogger(discord.Client):
     async def on_ready(self):
         self.startTime = datetime.utcnow()
         print(f"\033[1mStarted as {self.user}\033[0m")
-        await self.change_presence(activity=discord.Game(name="/activity"))
+        await self.change_presence(activity=discord.Game(name="- Type /activity to use!"))
 
 
 client = ActivityLogger(intents=intents)
@@ -83,7 +83,7 @@ client = ActivityLogger(intents=intents)
 async def sendErrorMsg(interaction: discord.Interaction):
     embed = discord.Embed(
         title="Error occurred during runtime",
-        description="A critical error occurred whilst running the command. Please contact `spacey75` on Discord.",
+        description="A critical error occurred whilst running the command. Please contact `.seanie.` on Discord.",
         color=0xFF0000,
     )
     try:
@@ -248,7 +248,7 @@ async def activity(interaction: discord.Interaction, steamid: str):
         errorlogger.error(f"{datetime.now()} - Could not resolve logging channel for guild.")
         embed = discord.Embed(
             title="Incorrect channel",
-            description="You must run the `/activity` command in the corresponding activity logging channel (e.g `#activity-log`). If this is in error, please contact `spacey75` on Discord.",
+            description="You must run the `/activity` command in the corresponding activity logging channel (e.g `#activity-log`). If this is in error, please contact `.seanie.` on Discord.",
             color=0xFF0000,
         )
         await interaction.followup.send(embed=embed, ephemeral=True)
@@ -260,7 +260,7 @@ async def activity(interaction: discord.Interaction, steamid: str):
         errorlogger.error("Error during channel check, channel not found.")
         embed = discord.Embed(
             title="Channel not found",
-            description="The logging channel was not found. This is likely a configuration error, or the result of changes to the logging channels. Please contact `spacey75` on Discord.",
+            description="The logging channel was not found. This is likely a configuration error, or the result of changes to the logging channels. Please contact `.seanie.` on Discord.",
             color=0xFF0000,
         )
         await interaction.followup.send(embed=embed, ephemeral=True)
