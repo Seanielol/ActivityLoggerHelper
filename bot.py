@@ -123,25 +123,60 @@ def ensureFormattedTime(delta: timedelta) -> str:
     return f"{hours:02}:{mins:02}:{seconds:02}"
 
 
-async def fetchActivity(channel: discord.TextChannel, steamID: str) -> discord.Embed:
-    """Scans channel history and returns an embed. No globals involved,
-    so concurrent invocations from different users never clash."""
-    totalSeconds = 0
-    timeframe = datetime.now() - timedelta(days=7)
-    safe_steamid = re.escape(steamID)
+def formatChangeLine(currentSeconds: int, previousSeconds: int) -> str:
+    """Builds a human-readable week-over-week comparison line."""
+    previousFormatted = ensureFormattedTime(timedelta(seconds=previousSeconds))
 
-    async for message in channel.history(limit=None, after=timeframe):
+    if previousSeconds == 0:
+        if currentSeconds == 0:
+            return "No activity logged last week either, so there's nothing to compare."
+        return f"No activity was logged the week before (previous week: `{previousFormatted}`), so this is a fresh start."
+
+    diffSeconds = currentSeconds - previousSeconds
+    percentChange = (diffSeconds / previousSeconds) * 100
+
+    if diffSeconds > 0:
+        arrow = "\U0001F53C"  # small up arrow
+        word = "up"
+    elif diffSeconds < 0:
+        arrow = "\U0001F53D"  # small down arrow
+        word = "down"
+    else:
+        return f"That's exactly the same as last week (`{previousFormatted}`)."
+
+    diffFormatted = ensureFormattedTime(timedelta(seconds=abs(diffSeconds)))
+    return (
+        f"{arrow} {word} `{diffFormatted}` (`{abs(percentChange):.0f}%`) compared to last week's `{previousFormatted}`"
+    )
+
+
+async def fetchActivity(channel: discord.TextChannel, steamID: str) -> discord.Embed:
+    """Scans channel history for the current week and the week before it,
+    and returns an embed comparing the two. No globals involved, so
+    concurrent invocations from different users never clash."""
+    currentWeekSeconds = 0
+    previousWeekSeconds = 0
+
+    now = datetime.now()
+    currentWeekStart = now - timedelta(days=7)
+    previousWeekStart = now - timedelta(days=14)
+
+    safe_steamid = re.escape(steamID)
+    pattern = re.compile(rf"\({safe_steamid}\).*for `(\d{{2}}:\d{{2}}:\d{{2}})`")
+
+    async for message in channel.history(limit=None, after=previousWeekStart):
         if message.embeds:
             content = message.embeds[0].description
             if content:
-                match = re.search(
-                    rf"\({safe_steamid}\).*for `(\d{{2}}:\d{{2}}:\d{{2}})`", content
-                )
+                match = pattern.search(content)
                 if match:
-                    timeStr = match.group(1)
-                    totalSeconds += timeToSeconds(timeStr)
+                    seconds = timeToSeconds(match.group(1))
+                    if message.created_at.replace(tzinfo=None) >= currentWeekStart:
+                        currentWeekSeconds += seconds
+                    else:
+                        previousWeekSeconds += seconds
 
-    totalActivity = ensureFormattedTime(timedelta(seconds=totalSeconds))
+    totalActivity = ensureFormattedTime(timedelta(seconds=currentWeekSeconds))
 
     channelid_map = config.get("channelid", {})
     try:
@@ -154,16 +189,22 @@ async def fetchActivity(channel: discord.TextChannel, steamID: str) -> discord.E
     if channelName.lower() in config.get("longerNames", {}):
         channelName = config["longerNames"][channelName.lower()]
 
-    if totalSeconds == 0:
+    comparisonLine = formatChangeLine(currentWeekSeconds, previousWeekSeconds)
+
+    if currentWeekSeconds == 0:
         embed = discord.Embed(
             title=f"No Activity Logged ({channelName})",
-            description=f"`{steamID}` has not been on {channelName} in the past `1 week`.",
+            description=(
+                f"`{steamID}` has not been on {channelName} in the past `1 week`.\n\n{comparisonLine}"
+            ),
             color=0x0483FB,
         )
     else:
         embed = discord.Embed(
             title=f"Activity Logged ({channelName})",
-            description=f"`{steamID}` has been on {channelName} for `{totalActivity}` for the past `1 week`",
+            description=(
+                f"`{steamID}` has been on {channelName} for `{totalActivity}` for the past `1 week`\n\n{comparisonLine}"
+            ),
             color=0x0483FB,
         )
     return embed
@@ -275,7 +316,7 @@ async def activity(interaction: discord.Interaction, steamid: str):
         if not permissions.read_messages:
             embed = discord.Embed(
                 title="Permission Denied",
-                description="You do not have the required permissions to use this bot. If this is in error, please contact `spacey75` on Discord.",
+                description="You do not have the required permissions to use this bot. If this is in error, please contact `.seanie.` on Discord.",
                 color=0xFF0000,
             )
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -318,7 +359,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
         else:
             embed = discord.Embed(
                 title="Error occurred during runtime",
-                description="A critical error occurred whilst running the command. Please contact `spacey75` on Discord.",
+                description="A critical error occurred whilst running the command. Please contact `.seanie.` on Discord.",
                 color=0xFF0000,
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -368,7 +409,7 @@ def loadConfig() -> bool:
                     "nca": "National Crime Agency",
                     "nhs": "National Health Service",
                     "rs": "Royal Syndicate",
-                    "t": "Black Claw",
+                    "t": "Terrorists",
                 },
                 "channelid": {
                     "pd": 1090365529564385310,
