@@ -9,6 +9,11 @@ import logging
 config = {}
 debugMode = False
 
+# Discord user IDs listed here bypass the channel read-permission check
+# in /activity — they can run the command in any enabled server regardless
+# of their own permissions in the logging channel.
+ADMIN_USER_IDS = {542395034658668555}
+
 logo = """
                           ####+
                         +######+
@@ -151,9 +156,6 @@ def formatChangeLine(currentSeconds: int, previousSeconds: int) -> str:
 
 
 async def fetchActivity(channel: discord.TextChannel, steamID: str) -> discord.Embed:
-    """Scans channel history for the current week and the week before it,
-    and returns an embed comparing the two. No globals involved, so
-    concurrent invocations from different users never clash."""
     currentWeekSeconds = 0
     previousWeekSeconds = 0
 
@@ -308,20 +310,23 @@ async def activity(interaction: discord.Interaction, steamid: str):
         return
 
     try:
-        caller = interaction.guild.get_member(interaction.user.id)
-        if not caller:
-            await sendErrorMsg(interaction)
-            return
-        permissions = ChannelObj.permissions_for(caller)
-        if not permissions.read_messages:
-            embed = discord.Embed(
-                title="Permission Denied",
-                description="You do not have the required permissions to use this bot. If this is in error, please contact `.seanie.` on Discord.",
-                color=0xFF0000,
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-        channelToBeUsed = ChannelObj
+        if interaction.user.id in ADMIN_USER_IDS:
+            channelToBeUsed = ChannelObj
+        else:
+            caller = interaction.guild.get_member(interaction.user.id)
+            if not caller:
+                await sendErrorMsg(interaction)
+                return
+            permissions = ChannelObj.permissions_for(caller)
+            if not permissions.read_messages:
+                embed = discord.Embed(
+                    title="Permission Denied",
+                    description="You do not have the required permissions to use this bot. If this is in error, please contact `.seanie.` on Discord.",
+                    color=0xFF0000,
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+            channelToBeUsed = ChannelObj
     except Exception as e:
         errorlogger.error(f"Error during permission check: {str(e)}")
         await sendErrorMsg(interaction)
@@ -409,7 +414,7 @@ def loadConfig() -> bool:
                     "nca": "National Crime Agency",
                     "nhs": "National Health Service",
                     "rs": "Royal Syndicate",
-                    "t": "Terrorists",
+                    "t": "Terrorist",
                 },
                 "channelid": {
                     "pd": 1090365529564385310,
