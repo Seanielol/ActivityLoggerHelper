@@ -408,7 +408,6 @@ def loadConfig() -> bool:
             config = {
                 "longerNames": {
                     "pd": "Metropolitan Police",
-                    "so2": "Crime Support Branch",
                     "sco-19": "Specialist Firearms Command",
                     "sco": "SCO-19",
                     "nca": "National Crime Agency",
@@ -418,7 +417,6 @@ def loadConfig() -> bool:
                 },
                 "channelid": {
                     "pd": 1090365529564385310,
-                    "so2": 1141061367730806906,
                     "sco": 1081600560060444885,
                     "nca": 1079508453241917653,
                     "nhs": 1117803842646585424,
@@ -428,7 +426,6 @@ def loadConfig() -> bool:
                 },
                 "guilds": {
                     "pd": 472520717515096078,
-                    "so2": 472520717515096078,
                     "sco": 472534240576143401,
                     "nca": 473075559409385472,
                     "nhs": 472537475605069825,
@@ -439,7 +436,6 @@ def loadConfig() -> bool:
                 "enabled_dept": ["test"],
                 "minimum_role_requirement": {
                     "pd": 1179100367083016233,
-                    "so2": 811356656276865034,
                     "sco": 811699338253172736,
                     "nca": 1241570118014599278,
                     "nhs": 752960738544451715,
